@@ -2,6 +2,23 @@ import { COUNTDOWN_WINDOW_MINUTES, formatDuration } from "../utils/schedule";
 import { RoomIcon, TeacherIcon } from "./icons";
 
 /**
+ * Room number first, in a badge, so it can be found at a glance; the room's
+ * name follows quietly. Rooms without a number ("Teams") badge their name.
+ */
+const RoomList = ({ rooms }) => (
+  <span className="rooms">
+    {rooms.map((room) => (
+      <span key={room.number || room.name} className="room">
+        <span className="room__number">{room.number || room.name}</span>
+        {room.number && room.name && (
+          <span className="room__name">{room.name}</span>
+        )}
+      </span>
+    ))}
+  </span>
+);
+
+/**
  * One lesson on the time rail: mono times in the left gutter, a period node
  * on the spine, and the lesson body. Live lessons carry a progress bar; the
  * next one up carries a countdown.
@@ -64,7 +81,7 @@ const LectureCard = ({ row, change }) => {
         </div>
 
         <dl className="lesson__meta">
-          <div className="lesson__meta-item">
+          <div className="lesson__meta-item lesson__meta-item--room">
             <dt className="sr-only">Room</dt>
             <RoomIcon size={14} />
             <dd>
@@ -75,6 +92,8 @@ const LectureCard = ({ row, change }) => {
                   <del className="text-struck">{lecture.classroom}</del>{" "}
                   <span className="text-warn">{change.auditorija}</span>
                 </>
+              ) : lecture.rooms?.length ? (
+                <RoomList rooms={lecture.rooms} />
               ) : (
                 lecture.classroom
               )}

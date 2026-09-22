@@ -63,6 +63,27 @@ export const weekIndexFor = (date, termStart, cycleLength) => {
   return ((weeks % cycleLength) + cycleLength) % cycleLength;
 };
 
+// "Verslumo centras (Entrepreneurship Centre) (221)", "Tokijas (Tokyo)(226)"
+const TRAILING_ROOM_NUMBER = /^(.*?)\s*\(\s*(\d[\w-]*)\s*\)$/;
+const BARE_ROOM_NUMBER = /^\d[\w-]*$/;
+const TRANSLATION = /\s*\(([^()]+)\)$/;
+
+/**
+ * Splits an EduPage room label into its number and a readable name, so the
+ * number — what students look for — can lead. Rooms without a number
+ * ("Teams") come back as a name only.
+ */
+export const parseRoom = (label = "") => {
+  const text = label.trim();
+  const numbered = text.match(TRAILING_ROOM_NUMBER);
+  if (numbered) {
+    const name = numbered[1].replace(TRANSLATION, " · $1").trim();
+    return { number: numbered[2], name: name || null };
+  }
+  if (BARE_ROOM_NUMBER.test(text)) return { number: text, name: null };
+  return { number: null, name: text || null };
+};
+
 const indexById = (rows) => new Map(rows.map((row) => [String(row.id), row]));
 
 /** Indexes a regularttGetData response once, so days can be built cheaply. */
@@ -112,6 +133,10 @@ const toLecture = ({ card, lesson }, date, classId, timetable) => {
     subject: subject?.name || subject?.short || "Unknown subject",
     subjectShort: subject?.short || "?",
     classroom: namesOf(card.classroomids, classrooms, "short") || "–",
+    rooms: (card.classroomids || [])
+      .map((id) => classrooms.get(String(id))?.short)
+      .filter(Boolean)
+      .map(parseRoom),
     teacher: namesOf(lesson.teacherids, teachers, "short") || "–",
     teacherFull: namesOf(lesson.teacherids, teachers, "name") || "–",
     date,

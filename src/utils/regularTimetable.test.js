@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 import {
   buildLecturesByDate,
   parseDateRange,
+  parseRoom,
   parseTimetable,
   pickTimetable,
   weekIndexFor,
@@ -73,6 +74,34 @@ describe("parseDateRange", () => {
 
   test("returns null when the title has no range", () => {
     assert.equal(parseDateRange("Timetable"), null);
+  });
+});
+
+describe("parseRoom", () => {
+  test("splits the number off a named room with a translation", () => {
+    assert.deepEqual(parseRoom("Verslumo centras (Entrepreneurship Centre) (221)"), {
+      number: "221",
+      name: "Verslumo centras · Entrepreneurship Centre",
+    });
+  });
+
+  test("handles a room with only a local name", () => {
+    assert.deepEqual(parseRoom("Baku (219)"), { number: "219", name: "Baku" });
+  });
+
+  test("handles a missing space before the number", () => {
+    assert.deepEqual(parseRoom("Tokijas (Tokyo)(226)"), {
+      number: "226",
+      name: "Tokijas · Tokyo",
+    });
+  });
+
+  test("treats a bare code as the number", () => {
+    assert.deepEqual(parseRoom("217"), { number: "217", name: null });
+  });
+
+  test("keeps a room without a number, such as Teams, as its name", () => {
+    assert.deepEqual(parseRoom("Teams "), { number: null, name: "Teams" });
   });
 });
 
@@ -172,6 +201,7 @@ describe("buildLecturesByDate", () => {
       subject: "Marketing",
       subjectShort: "Mkt",
       classroom: "217",
+      rooms: [{ number: "217", name: null }],
       teacher: "Jonaitis J.",
       teacherFull: "lektorius Jonaitis J.",
       date: "2026-09-14",
@@ -195,6 +225,7 @@ describe("buildLecturesByDate", () => {
   test("a lesson with no room shows a dash", () => {
     const [stats] = buildLecturesByDate(timetable, "*1", weekOfSep7, TERM)["2026-09-07"];
     assert.equal(stats.classroom, "–");
+    assert.deepEqual(stats.rooms, []);
   });
 
   test("only includes lessons of the chosen group", () => {
