@@ -1,0 +1,83 @@
+# ─── Build ────────────────────────────────────────────────────────────
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# ─── Functions — same-origin EduPage proxy (/.netlify/functions/*) ────
+[functions]
+  directory = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ─── SPA routing — all paths → index.html ─────────────────────────────
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# ─── Security Headers ─────────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # Prevent site from being embedded in iframes (clickjacking)
+    X-Frame-Options = "DENY"
+
+    # Prevent MIME-type sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # Only send origin in Referer header for cross-origin requests
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Restrict browser features
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+    # Force HTTPS for 1 year (HSTS)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # Content Security Policy
+    # - default-src: only self
+    # - script-src: self + inline (needed by Vite PWA)
+    # - connect-src: self (timetable data comes via the Netlify Functions proxy)
+    # - img-src: self + data URIs (for PWA icons)
+    # - style-src: self + inline (Tailwind injects styles)
+    # - frame-src: none (no iframes)
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self';"
+
+# ─── Cache static assets aggressively ─────────────────────────────────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ─── Never cache HTML (always fresh for PWA updates) ──────────────────
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# ─── Service worker — must always revalidate ──────────────────────────
+# Browsers may otherwise serve sw.js from the HTTP cache for up to 24h,
+# which hides new deploys from installed PWAs.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# ─── Self-hosted fonts — stable filenames, cache hard ─────────────────
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type  = "application/manifest+json"
